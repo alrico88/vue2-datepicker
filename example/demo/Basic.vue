@@ -29,6 +29,16 @@
       <p>week</p>
       <date-picker v-model="value6" type="week" placeholder="Select week"></date-picker>
     </section>
+    <section>
+      <p>date (default)</p>
+      <date-picker
+        v-model="value7"
+        format="YYYY-MM-DD"
+        type="date"
+        multiple
+        placeholder="Select date"
+      ></date-picker>
+    </section>
   </div>
 </template>
 
@@ -43,6 +53,7 @@ export default {
       value4: null,
       value5: null,
       value6: null,
+      value7: null,
     };
   },
 };

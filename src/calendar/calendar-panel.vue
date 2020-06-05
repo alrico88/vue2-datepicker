@@ -249,7 +249,7 @@ export default {
     },
     emitDate(date, type) {
       if (!this.isDisabled(date)) {
-        this.$emit('select', date, type);
+        this.$emit('select', date, type, this.innerValue);
         // someone need get the first selected date to set range value. (#429)
         this.dispatch('DatePicker', 'pick', date, type);
       }

@@ -90,7 +90,7 @@
 
 <script>
 import { parse, format, getWeek } from 'date-format-parse';
-import { isValidDate, isValidRangeDate } from './util/date';
+import { isValidDate, isValidRangeDate, isValidDates } from './util/date';
 import { pick, isObject, mergeDeep } from './util/base';
 import { getLocale, getLocaleFieldValue } from './locale';
 import Popup from './popup';
@@ -161,6 +161,16 @@ export default {
       type: String,
       default: ' ~ ',
     },
+    multiple: {
+      type: Boolean,
+      default: false,
+    },
+    separator: {
+      type: String,
+      default() {
+        return this.multiple ? ',' : this.rangeSeparator;
+      },
+    },
     lang: {
       type: [String, Object],
     },
@@ -222,6 +232,9 @@ export default {
       type: String,
       default: 'OK',
     },
+    renderInputText: {
+      type: Function,
+    },
     shortcuts: {
       type: Array,
       validator(value) {
@@ -262,6 +275,10 @@ export default {
     },
     innerValue() {
       let { value } = this;
+      if (this.multiple) {
+        value = Array.isArray(value) ? value : [];
+        return value.map(this.value2date);
+      }
       if (this.range) {
         value = Array.isArray(value) ? value.slice(0, 2) : [null, null];
         return value.map(this.value2date);
@@ -272,12 +289,15 @@ export default {
       if (this.userInput !== null) {
         return this.userInput;
       }
+      if (typeof this.renderInputText === 'function') {
+        return this.renderInputText(this.innerValue);
+      }
       if (!this.isValidValue(this.innerValue)) {
         return '';
       }
       const fmt = this.format;
       if (Array.isArray(this.innerValue)) {
-        return this.innerValue.map(v => this.formatDate(v, fmt)).join(this.rangeSeparator);
+        return this.innerValue.map(v => this.formatDate(v, fmt)).join(this.separator);
       }
       return this.formatDate(this.innerValue, fmt);
     },
@@ -368,14 +388,30 @@ export default {
       }
     },
     isValidValue(value) {
-      const validate = this.range ? isValidRangeDate : isValidDate;
-      return validate(value);
+      if (this.multiple) {
+        return isValidDates(value);
+      }
+      if (this.range) {
+        return isValidRangeDate(value);
+      }
+      return isValidDate(value);
     },
-    handleSelectDate(val, type) {
+    handleMultipleDates(date, dates) {
+      if (this.multiple && dates) {
+        const nextDates = dates.filter(v => v.getTime() !== date.getTime());
+        if (nextDates.length === dates.length) {
+          nextDates.push(date);
+        }
+        return nextDates;
+      }
+      return date;
+    },
+    handleSelectDate(val, type, dates) {
+      val = this.handleMultipleDates(val, dates);
       if (this.confirm) {
         this.currentValue = val;
       } else {
-        this.emitValue(val, type);
+        this.emitValue(val, this.multiple ? `multiple-${type}` : type);
       }
     },
     handleClear() {
@@ -421,10 +457,14 @@ export default {
         return;
       }
       let date;
-      if (this.range) {
-        let arr = text.split(this.rangeSeparator);
+      if (this.multiple) {
+        date = text.split(this.separator).map(v => this.parseDate(v.trim(), this.format));
+      } else if (this.range) {
+        let arr = text.split(this.separator);
         if (arr.length !== 2) {
-          arr = text.split(this.rangeSeparator.trim());
+          // Maybe the separator during the day is the same as the separator for the date
+          // eg: 2019-10-09-2020-01-02
+          arr = text.split(this.separator.trim());
         }
         date = arr.map(v => this.parseDate(v.trim(), this.format));
       } else {

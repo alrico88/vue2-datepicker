@@ -15,6 +15,10 @@ export function isValidRangeDate(date) {
   return Array.isArray(date) && date.length === 2 && date.every(isValidDate) && date[0] <= date[1];
 }
 
+export function isValidDates(dates) {
+  return Array.isArray(dates) && dates.every(isValidDate);
+}
+
 export function getValidDate(value, ...backup) {
   const date = new Date(value);
   return isValidDate(date) ? date : getValidDate(...backup);
